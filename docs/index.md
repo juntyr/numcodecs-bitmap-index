@@ -6,7 +6,7 @@
 
 # numcodecs-bitmap-index
 
-[`BitmapIndexCodec`][numcodecs_bitmap-index.BitmapIndexCodec] for the [`numcodecs`][numcodecs] buffer compression API.
+[`BitmapIndexCodec`][numcodecs_bitmap_index.BitmapIndexCodec] for the [`numcodecs`][numcodecs] buffer compression API.
 
 ## Funding
 
