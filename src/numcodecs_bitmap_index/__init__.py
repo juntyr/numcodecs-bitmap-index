@@ -7,10 +7,10 @@ __all__ = ["BitmapIndexCodec"]
 from functools import reduce
 from io import BytesIO
 
+import leb128
 import numcodecs.compat
 import numcodecs.registry
 import numpy as np
-import varint
 from numcodecs.abc import Codec
 
 from .typing import S, T, U
@@ -99,16 +99,16 @@ class BitmapIndexCodec(Codec):
             num_bitmaps = min(num_bitmaps, self._max_bitmaps)
 
         # message: dtype shape num-bitmaps { value is-value } [padding] rest
-        message = []
+        message: list[bytes | bytearray] = []
 
-        message.append(varint.encode(len(dtype.str)))
+        message.append(leb128.u.encode(len(dtype.str)))
         message.append(dtype.str.encode("ascii"))
 
-        message.append(varint.encode(len(shape)))
+        message.append(leb128.u.encode(len(shape)))
         for s in shape:
-            message.append(varint.encode(s))
+            message.append(leb128.u.encode(s))
 
-        message.append(varint.encode(num_bitmaps))
+        message.append(leb128.u.encode(num_bitmaps))
 
         for u in unique[:num_bitmaps]:
             # ensure that the values are encoded in little endian binary
@@ -162,14 +162,15 @@ class BitmapIndexCodec(Codec):
         b = numcodecs.compat.ensure_bytes(buf)
         b_io = BytesIO(b)
 
-        dtype = np.dtype(b_io.read(varint.decode_stream(b_io)).decode("ascii"))
+        dtype = np.dtype(b_io.read(leb128.u.decode_reader(b_io)[0]).decode("ascii"))
 
         shape = tuple(
-            varint.decode_stream(b_io) for _ in range(varint.decode_stream(b_io))
+            leb128.u.decode_reader(b_io)[0]
+            for _ in range(leb128.u.decode_reader(b_io)[0])
         )
         size = reduce(lambda a, b: a * b, shape, 1)
 
-        num_bitmaps = varint.decode_stream(b_io)
+        num_bitmaps, _ = leb128.u.decode_reader(b_io)
 
         # track which indices remain in successive bitmaps
         indices = np.arange(size)
